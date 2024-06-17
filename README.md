@@ -1,3 +1,3 @@
-# golang-template
+## Tempus 
 
-template for basic CLI golang programs
+My TUI to-do manager (with support to sync .isc files from WebDAV)
