@@ -13,6 +13,9 @@ type Options struct {
 	URL     string
 	Threads int
 	// Verbose   bool
+
+	User     string
+	Password string
 }
 
 func ParseOptions() (*Options, error) {
@@ -28,6 +31,16 @@ func ParseOptions() (*Options, error) {
 			flagSet.IntVarP(&options.Threads, "t", "threads", 10, "threads to run"), //TODO add estimate counter to packets/s
 			// flagSet.StringVarP(&options.URL, "u", "url", "", "verbose"),
 		)
+
+		flagSet.CreateGroup("debug", "WebDAV Debug",
+			flagSet.StringVarP(&options.User, "l", "login", "", "WebDAV login"),
+			flagSet.StringVarP(&options.Password, "p", "password", "", "WebDAV password (forbid filesystem access!!!)"),
+		)
+		
+		// flagSet.CreateGroup("debug", "Debug",
+		// 	flagSet.BoolVarP(&options.Verbose, "v", "verbose", false, "verbose output with debugging information"),
+		// )
+
 		_ = flagSet.Parse()
 
 		err = options.SanityCheck()
