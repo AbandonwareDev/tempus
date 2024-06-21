@@ -36,7 +36,7 @@ func ParseOptions() (*Options, error) {
 			flagSet.StringVarP(&options.User, "l", "login", "", "WebDAV login"),
 			flagSet.StringVarP(&options.Password, "p", "password", "", "WebDAV password (forbid filesystem access!!!)"),
 		)
-		
+
 		// flagSet.CreateGroup("debug", "Debug",
 		// 	flagSet.BoolVarP(&options.Verbose, "v", "verbose", false, "verbose output with debugging information"),
 		// )
