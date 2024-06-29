@@ -1,120 +1,141 @@
 package main
 
-
 import (
-	"fmt"
+	// "fmt"
 	// "os"
+	// "time"
+	// "io"
 	// "strings"
 
-	"github.com/charmbracelet/bubbles/list"
+	// "github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	// textblink "github.com/charmbracelet/bubbles/textinput"
 	// "github.com/erikgeiser/promptkit/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	// "github.com/charmbracelet/lipgloss"
 	"golang.org/x/term"
+
+	// "github.com/emersion/go-ical"
+	// "github.com/emersion/go-webdav/caldav"
+
+	// "errors"
 )
+//TODO add new TODos
+//TODO edit TODOs
+//TODO add search
+//TODO add custom filter (search that saves with filter)
+// TODO add tabs for days/searcf/filter
 
-var docStyle = lipgloss.NewStyle().Margin(1, 2)
 
-var loginStyle = lipgloss.NewStyle().Width(40).Align(lipgloss.Center).BorderStyle(lipgloss.NormalBorder())
 
-var inputStyle = lipgloss.NewStyle()
 
-func (i TODO) Title() string       { return i.Name }
-func (i TODO) Description() string { return i.Desc }
-func (i TODO) FilterValue() string { return i.Name }
 
-type model struct {
-	Tabs       []string
-	// TabContent []string
-	LoggedIn bool
-	ActiveWindow  string
+
+type errMsg struct {message string}
+
+func (m model) errHandler(desc string,err error) (tea.Cmd) {
+	if err != nil {
+		output := desc+": "+err.Error()
+		return func() tea.Msg { return errMsg{output} }
+		// return errMsg{output}
+		// m.Send(output)
+	}
 	
-	TodayTab list.Model
-	TomorrowTab list.Model
-
-	loginInputs  []textinput.Model
-	focused int
-	err     error
+	return nil
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 func (m model) Init() tea.Cmd {
 	return textinput.Blink
 	// return nil
 }
 
-const (
-	url = iota
-	login
-	pass
-)
-//TODO add changing calendar 
 
-func InitModel() model {
-	var inputs []textinput.Model = make([]textinput.Model, 3)
-	inputs[url] = textinput.New()
-	inputs[url].Placeholder = "https://nextcloud.example/remote.php/dav"
-	inputs[url].Focus()
-	// inputs[url].CharLimit = 20
-	inputs[url].Width = 30
-	inputs[url].Prompt = ""
-	// inputs[url].Validate = urlValidator
 
-	inputs[login] = textinput.New()
-	inputs[login].Placeholder = "username"
-	// inputs[login].CharLimit = 5
-	inputs[login].Width = 30
-	inputs[login].Prompt = ""
-	// inputs[login].Validate = loginValidator
+//TODO add changing calendar
 
-	inputs[pass] = textinput.New()
-	inputs[pass].Placeholder = "MySecurePassword"
-	// inputs[pass].CharLimit = 3
-	inputs[pass].Width = 30
-	inputs[pass].Prompt = ""
-	// inputs[pass].Validate = passValidator
 
-	output := model{
-		Tabs: []string{"Today", "Tomorrow", "Add"},
-		loginInputs: inputs,
-		focused: 0,
-		err:     nil,
-		// TabContent: []string{"ERROR?", "Mascara Tab", "Foundation Tab"},
-	}
-	return output
-}
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-
-	
-
+//TODO separate to funcs
+	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if m.ActiveWindow == "calendarChoose" {
+			switch keypress := msg.String(); keypress {
+					case "q", "ctrl+c":
+						// m.quitting = true
+						return m, tea.Quit
+			
+					case "enter":
+						i, ok := m.calendarList.SelectedItem().(item)
+						if ok {
+							m.calendarChoice = string(i) //TODO remove from model - calendarChoice
+						}
+						for _,calendar := range m.Calendars {
+							if calendar.Name == m.calendarChoice {
+								m.Creds.CalendarPath = calendar.Path
+							}
+						}
+						
+						err := m.CredentialsSave()
+						if err != nil { return m, m.errHandler("Failed to save credentials",err)}
+						m.CalendarToTodo()
+						return m, nil
+					}
+		}
+		
 		if m.ActiveWindow == "login" {
 			switch keypress := msg.String(); keypress {
-				case "ctrl+c", "q":
-					return m, tea.Quit
-				case "enter":
-					if m.focused == len(m.loginInputs)-1 {
-						//TODO submit
+			case "ctrl+c", "q":
+				return m, tea.Quit
+			case "enter":
+				if m.focused == len(m.loginInputs)-1 {
+					//TODO check that we have all fields not empty and notificate about it
+					//TODO submit
+					for i := range m.loginInputs {
+								m.loginInputs[i], cmd = m.loginInputs[i].Update(msg)
+							}
+					// fmt.Println(m.loginInputs[url].Value())//DEBUG
+					m.Creds.URL = m.loginInputs[url].Value()
+					m.Creds.Username = m.loginInputs[login].Value()
+					m.Creds.Password = m.loginInputs[pass].Value()
+					// fmt.Println(m.Creds.URL)//DEBUG
+						
+					// time.Sleep(1 * time.Second) ///DEBUG
+					// m.Creds.
+					// return m, nil
+					err := m.LoginToCalendar()
+					if err != nil {return m, m.errHandler("Failed to authenticate",err)}
+					// try login -> choose calendar -> store -> move to getting stuff
+					return m, nil
+					// return m, tea.Quit
+				}
+				m.nextInput()
+			case "shift+tab", "up":
+				m.prevInput()
+			case "tab", "down":
+				m.nextInput()
+			}
+			for i := range m.loginInputs {
+				m.loginInputs[i].Blur()
+			}
+			m.loginInputs[m.focused].Focus()
 
-						// try login -> store -> move to getting stuff
-						return m, tea.Quit
-					}
-					m.nextInput()
-				case "shift+tab", "up":
-					m.prevInput()
-				case "tab", "down":
-					m.nextInput()
-				}
-				for i := range m.loginInputs {
-					m.loginInputs[i].Blur()
-				}
-				m.loginInputs[m.focused].Focus()
-					
 		}
-	
+
 		switch keypress := msg.String(); keypress {
 		case "ctrl+c", "q":
 			return m, tea.Quit
@@ -125,10 +146,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				h, v := docStyle.GetFrameSize()
 				width, height, _ := term.GetSize(0)
 				switch m.ActiveWindow {
-					case "today":
+				case "today":
 					m.ActiveWindow = "tomorrow"
 					m.TomorrowTab.SetSize(width-h, height-v)
-					case "tomorrow":
+				case "tomorrow":
 					m.ActiveWindow = "today"
 					m.TodayTab.SetSize(width-h, height-v)
 				}
@@ -143,39 +164,54 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// TODO add new element
 			return m, tea.Quit
 		}
-	
+
 	case tea.WindowSizeMsg:
-		h, v := docStyle.GetFrameSize()
+		
 		switch m.ActiveWindow {
-			case "login":
-				m.TodayTab.SetSize(msg.Width-h, msg.Height-v)
-			case "today":
-				m.TodayTab.SetSize(msg.Width-h, msg.Height-v)
-			case "tomorrow":
-				m.TomorrowTab.SetSize(msg.Width-h, msg.Height-v)
+		// case "login": //TODO
+		// 	m.TodayTab.SetSize(msg.Width-h, msg.Height-v)
+		// case "calendarChoose":  //TODO
+		// 	m.calendarList.SetWidth(msg.Width)
+		case "today":
+			h, v := docStyle.GetFrameSize()
+			m.TodayTab.SetSize(msg.Width-h, msg.Height-v)
+		case "tomorrow":
+			h, v := docStyle.GetFrameSize()
+			m.TomorrowTab.SetSize(msg.Width-h, msg.Height-v)
 		}
 
+
+	case errMsg:
+		m.errString = msg.message
+		m.ActiveWindow = ""
 	}
 
-
-	var cmd tea.Cmd
+	
 	// text input
 	switch m.ActiveWindow {
-		case "login":
-			for i := range m.loginInputs {
-				m.loginInputs[i], cmd = m.loginInputs[i].Update(msg)
-			}
-		case "today":
-			m.TodayTab, cmd = m.TodayTab.Update(msg)
-		case "tomorrow":
-			m.TomorrowTab, cmd = m.TomorrowTab.Update(msg)
+	case "login":
+		for i := range m.loginInputs {
+			m.loginInputs[i], cmd = m.loginInputs[i].Update(msg)
+		}
+	case "calendarChoose":
+			m.calendarList, cmd = m.calendarList.Update(msg)
+	case "today":
+		m.TodayTab, cmd = m.TodayTab.Update(msg)
+	case "tomorrow":
+		m.TomorrowTab, cmd = m.TomorrowTab.Update(msg)
+	
+	case "": //exit on key press
+		switch tmp := msg.(type) { //TODO debug and optimize
+			case tea.KeyMsg:
+			_ = tmp
+			if m.LoggedIn {
+				m.ActiveWindow = "today"
+			} else {m.ActiveWindow = "login"}
+		}
 	}
-	
-
-	
 	// m.TodayTab, cmd = m.TodayTab.Update(msg)
 	// m.TomorrowTab, cmd = m.TomorrowTab.Update(msg)
-	
+
 	return m, cmd
 }
 
@@ -184,87 +220,56 @@ func (m model) View() string {
 	var tabOutput string
 
 	switch m.ActiveWindow {
-				case "login":
-					width, height, _ := term.GetSize(0)
-					width -=2
-					height -=2
-					loginStyle = loginStyle.    
-					    // Width(30).
-					    // Height(height/5).
-   						MarginTop(height/5).
-   						MarginLeft(width/2-20)
-   						// MarginRight(width/3)
-					tabOutput = loginStyle.Render(m.RenderLogin())
-					// w, h := lipgloss.Size(tabOutput)
+	case "login":
+		width, height, _ := term.GetSize(0)
+		width -= 2
+		height -= 2
+		loginStyle = loginStyle.
+			// Width(30).
+			// Height(height/5).
+			MarginTop(height / 5).
+			MarginLeft(width/2 - 20)
+			// MarginRight(width/3)
+		tabOutput = loginStyle.Render(m.RenderLogin())
+		// w, h := lipgloss.Size(tabOutput)
+	case "calendarChoose": 
+		width, height, _ := term.GetSize(0)
+		width -= 2
+		height -= 2
+		loginStyle = loginStyle.
+			// Width(30).
+			// Height(height/5).
+			MarginTop(height / 5).
+			MarginLeft(width/2 - 20)
+			// MarginRight(width/3)
+		tabOutput = loginStyle.Render(m.RenderCalendarChooser())
+		// w, h := lipgloss.Size(tabOutput)
 
-					
-				case "today":
-					tabOutput = docStyle.Render(m.TodayTab.View())
-				case "tomorrow":
-					tabOutput = docStyle.Render(m.TomorrowTab.View())
-				case "":
-					width, height, _ := term.GetSize(0)
-					width -=2
-					height -=2
-					loginStyle = loginStyle.    
-					    Width(width/3).
-					    Height(1).
-   						MarginTop(height/2).
-   						MarginLeft(width/3+2).
-   						MarginRight(width/3)
-					tabOutput = loginStyle.Render("ERROR")
-			}
+	case "today":
+		tabOutput = docStyle.Render(m.TodayTab.View())
+	case "tomorrow":
+		tabOutput = docStyle.Render(m.TomorrowTab.View())
+	case "":
+		width, height, _ := term.GetSize(0)
+		width -= 2
+		height -= 2
+		loginStyle = loginStyle.
+			Width(width / 3).
+			Height(1).
+			MarginTop(height / 2).
+			MarginLeft(width/3 + 2).
+			MarginRight(width / 3)
+		tabOutput = loginStyle.Render("ERROR - " + m.errString)
+	}
 	// if m.activeTab == 0 {
 	// 	tabOutput = docStyle.Render(m.TodayTab.View())
 	// }
 	// if m.activeTab == 1 {
 	// 	tabOutput = docStyle.Render(m.TomorrowTab.View())
 	// }
-	
+
 	return tabOutput
 }
 
-func (m model) RenderLogin() string {
-
-	return fmt.Sprintf(
-			`%s
-
-	
-%s
-%s
-
-%s
-%s
-
-%s
-%s
 
 
-%s
-	`,
-			
-			inputStyle.Width(30).Align(lipgloss.Center).Render("Login"),
-			inputStyle.Width(30).Foreground(lipgloss.AdaptiveColor{Dark: "50"}).Render("WebDAV server URL"),
-			m.loginInputs[url].View(),
-			inputStyle.Width(30).Foreground(lipgloss.AdaptiveColor{Dark: "50"}).Render("Login"),
-			m.loginInputs[login].View(),
-			inputStyle.Width(30).Foreground(lipgloss.AdaptiveColor{Dark: "50"}).Render("Password"),
-			m.loginInputs[pass].View(), //TODO hide
-			inputStyle.Render("Continue ->"),
-		)
-		// .Align(lipgloss.Center).BorderStyle(lipgloss.NormalBorder())
-		
-}
-
-func (m *model) nextInput() {
-	m.focused = (m.focused + 1) % len(m.loginInputs)
-}
-
-// prevInput focuses the previous input field
-func (m *model) prevInput() {
-	m.focused--
-	// Wrap around
-	if m.focused < 0 {
-		m.focused = len(m.loginInputs) - 1
-	}
-}

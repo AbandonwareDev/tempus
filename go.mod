@@ -6,7 +6,9 @@ require (
 	github.com/charmbracelet/bubbles v0.18.0
 	github.com/charmbracelet/bubbletea v0.26.4
 	github.com/charmbracelet/lipgloss v0.11.0
+	github.com/emersion/go-ical v0.0.0-20220601085725-0864dccc089f
 	github.com/emersion/go-webdav v0.5.0
+	github.com/google/uuid v1.3.1
 	github.com/projectdiscovery/goflags v0.1.56
 	github.com/zalando/go-keyring v0.2.5
 	golang.org/x/term v0.18.0
@@ -24,7 +26,6 @@ require (
 	github.com/charmbracelet/x/windows v0.1.0 // indirect
 	github.com/cnf/structhash v0.0.0-20201127153200-e1b16c1ebc08 // indirect
 	github.com/danieljoos/wincred v1.2.0 // indirect
-	github.com/emersion/go-ical v0.0.0-20220601085725-0864dccc089f // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
