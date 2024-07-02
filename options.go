@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"errors"
 	"github.com/projectdiscovery/goflags"
 	"sync"
@@ -18,6 +19,8 @@ type Options struct {
 
 	User     string
 	Password string
+
+	Proxy string
 }
 
 func ParseOptions() (*Options, error) {
@@ -39,6 +42,7 @@ func ParseOptions() (*Options, error) {
 			flagSet.StringVarP(&options.User, "l", "login", "", "WebDAV login username"),
 			flagSet.StringVarP(&options.Password, "p", "password", "", "WebDAV password (forbid filesystem access in WebDAV and don't forget to clean shell history!)"),
 			flagSet.StringVarP(&options.Calendar, "c", "calendar", "", "CalDAV calendar (to-do list) name to use (works only with -u,-l,-p flags)"),
+			flagSet.StringVarP(&options.Proxy, "P", "proxy", "", "HTTP proxy to debug errors"),
 			// flagSet.BoolVarP(&options.SkipSave, "s", "no-save", false, "skip save to keyring"), //TODO
 		)
 
@@ -63,6 +67,9 @@ func (options *Options) SanityCheck() error {
 			return errors.New("-u,-l,-p flags must present")
 		}
 	}
+
+	if options.Proxy != "" {os.Setenv("HTTP_PROXY", options.Proxy)}
+	
 
 	return nil
 }

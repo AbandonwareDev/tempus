@@ -3,7 +3,7 @@ package main
 import (
 	// "fmt"
 	// "os"
-	// "time"
+	"time"
 	// "io"
 	// "strings"
 
@@ -33,7 +33,20 @@ import (
 
 type errMsg struct {message string}
 
-func (m model) errHandler(desc string,err error) (tea.Cmd) {
+
+//TODO fix multiple errHandlers 
+//TODO rm me
+func (m model) errHandler(err error,desc string) (tea.Cmd) {
+	if err != nil {
+		output := desc+": "+err.Error()
+		return func() tea.Msg { return errMsg{output} }
+		// return errMsg{output}
+		// m.Send(output)
+	}
+	
+	return nil
+}
+func errHandler_tui(err error,desc string) (tea.Cmd) {
 	if err != nil {
 		output := desc+": "+err.Error()
 		return func() tea.Msg { return errMsg{output} }
@@ -46,26 +59,10 @@ func (m model) errHandler(desc string,err error) (tea.Cmd) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 func (m model) Init() tea.Cmd {
 	return textinput.Blink
 	// return nil
 }
-
-
-
-//TODO add changing calendar
-
 
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -73,7 +70,35 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if m.ActiveWindow == "calendarChoose" {
+		switch m.ActiveWindow {
+		case "today": //TODO rm me  debug
+			switch keypress := msg.String(); keypress {
+				case "q", "ctrl+c":
+					// m.quitting = true
+					return m, tea.Quit
+		
+				case "y":
+					// m."2797322749061742597"
+				case "h":
+
+					todoInfo := TodoInterface{
+						name: "testName1",
+						description: "description",
+						priority: 3,
+						dueTime: time.Now(),
+						alarmOffset: "1h",
+					}
+					task, err := CreateTodo(todoInfo)
+					if err != nil {return m, m.errHandler(err,"test fail")}
+					err = m.UploadTodo(task)
+					if err != nil {return m, m.errHandler(err,"test fail2")}
+					m.UpdateTodos(task)
+					// fmt.Println(&task)
+					// fmt.Println(err)
+					// time.Sleep(2*time.Second)
+					return m, nil
+			}
+		case "calendarChoose":
 			switch keypress := msg.String(); keypress {
 					case "q", "ctrl+c":
 						// m.quitting = true
@@ -91,49 +116,49 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						}
 						
 						err := m.CredentialsSave()
-						if err != nil { return m, m.errHandler("Failed to save credentials",err)}
+						if err != nil { return m, m.errHandler(err,"Failed to save credentials")}
 						m.CalendarToTodo()
 						return m, nil
 					}
-		}
 		
-		if m.ActiveWindow == "login" {
-			switch keypress := msg.String(); keypress {
-			case "ctrl+c", "q":
-				return m, tea.Quit
-			case "enter":
-				if m.focused == len(m.loginInputs)-1 {
-					//TODO check that we have all fields not empty and notificate about it
-					//TODO submit
-					for i := range m.loginInputs {
-								m.loginInputs[i], cmd = m.loginInputs[i].Update(msg)
-							}
-					// fmt.Println(m.loginInputs[url].Value())//DEBUG
-					m.Creds.URL = m.loginInputs[url].Value()
-					m.Creds.Username = m.loginInputs[login].Value()
-					m.Creds.Password = m.loginInputs[pass].Value()
-					// fmt.Println(m.Creds.URL)//DEBUG
-						
-					// time.Sleep(1 * time.Second) ///DEBUG
-					// m.Creds.
-					// return m, nil
-					err := m.LoginToCalendar()
-					if err != nil {return m, m.errHandler("Failed to authenticate",err)}
-					// try login -> choose calendar -> store -> move to getting stuff
-					return m, nil
-					// return m, tea.Quit
+		
+			case "login":
+				switch keypress := msg.String(); keypress {
+				case "ctrl+c", "q":
+					return m, tea.Quit
+				case "enter":
+					if m.focused == len(m.loginInputs)-1 {
+						//TODO check that we have all fields not empty and notificate about it
+						//TODO submit
+						for i := range m.loginInputs {
+									m.loginInputs[i], cmd = m.loginInputs[i].Update(msg)
+								}
+						// fmt.Println(m.loginInputs[url].Value())//DEBUG
+						m.Creds.URL = m.loginInputs[url].Value()
+						m.Creds.Username = m.loginInputs[login].Value()
+						m.Creds.Password = m.loginInputs[pass].Value()
+						// fmt.Println(m.Creds.URL)//DEBUG
+							
+						// time.Sleep(1 * time.Second) ///DEBUG
+						// m.Creds.
+						// return m, nil
+						err := m.LoginToCalendar()
+						if err != nil {return m, m.errHandler(err,"Failed to authenticate")}
+						// try login -> choose calendar -> store -> move to getting stuff
+						return m, nil
+						// return m, tea.Quit
+					}
+					m.nextInput()
+				case "shift+tab", "up":
+					m.prevInput()
+				case "tab", "down":
+					m.nextInput()
 				}
-				m.nextInput()
-			case "shift+tab", "up":
-				m.prevInput()
-			case "tab", "down":
-				m.nextInput()
-			}
-			for i := range m.loginInputs {
-				m.loginInputs[i].Blur()
-			}
-			m.loginInputs[m.focused].Focus()
-
+				for i := range m.loginInputs {
+					m.loginInputs[i].Blur()
+				}
+				m.loginInputs[m.focused].Focus()
+	
 		}
 
 		switch keypress := msg.String(); keypress {

@@ -11,6 +11,9 @@ import (
 	"github.com/google/uuid"
 	"time"
 	"errors"
+
+	"net/http"
+	// "net/url"
 	// "fmt"
 )
 
@@ -339,10 +342,9 @@ func ParseDueDateTODOs(calObjs []caldav.CalendarObject, date time.Time) ([]ical.
 	// //TODO 		UID:7ed30f40-fce1-422c-be3b-0486dcfe8943
 	// //TODO 		RELATED-TO:7ed30f40-fce1-422c-be3b-0486dcfe8943 # subtask
 	// //TODO 		PRIORITY:1 #1-high, 5-mid, 9-low
-	//TODO repeat function???
-
-	//TODO on complete -repeat function
-	// RRULE:FREQ=WEEKLY;INTERVAL=1
+//TODO on complete -repeat function
+//TODO repeate - RRULE:FREQ=DAILY;INTERVAL=1
+			  // RRULE:FREQ=WEEKLY;INTERVAL=1
 	
 	//TODO if no repeat - mark as complted
 	// STATUS:COMPLETED
@@ -376,40 +378,88 @@ func ParseDueDateTODOs(calObjs []caldav.CalendarObject, date time.Time) ([]ical.
 
 
 
-// type todoInterface struct {
-// 	name string
-// 	description string
-// 	priority int
-// 	dueTime time.Time
-// 	name string
-// }
+type TodoInterface struct {
+	name string
+	description string
+	priority int
+	dueTime time.Time
+	alarmOffset string
+	repeat string
+	//TODO repeat
+	//TODO subtasks
+}
 
 
-func CreateTodo(name,description string, priority int, dueTime time.Time) (event ical.Event,err error) {
+func CreateTodo(info TodoInterface) (event ical.Event,err error) {
 	uid, err := uuid.NewUUID()
 	if err != nil {return}
 	event = *ical.NewEvent()
+		event.Name = ical.CompToDo //VTODO
 		event.Props.SetText(ical.PropUID, uid.String())
-		event.Props.SetText(ical.PropSummary, name)
-		event.Props.SetText(ical.PropDescription, description)
-		if !dueTime.IsZero() {event.Props.SetDateTime(ical.PropDateTimeEnd, dueTime)} // 'zero' time is `time.Time{}`
-		switch priority {
+		event.Props.SetText(ical.PropSummary, info.name)
+		event.Props.SetText(ical.PropDescription, info.description)
+		if !info.dueTime.IsZero() {event.Props.SetDateTime(ical.PropDue, info.dueTime)} // 'zero' time is `time.Time{}`
+		//TODO add alarm
+		switch info.priority {
 			case 0: //No priority
 				event.Props.SetText(ical.PropPriority, "0")
 			case 1:	//Light
-				event.Props.SetText(ical.PropPriority, "1")
+				event.Props.SetText(ical.PropPriority, "9")
 			case 2: //Medium
 				event.Props.SetText(ical.PropPriority, "5")
 			case 3: //Urgent
-				event.Props.SetText(ical.PropPriority, "9")	
+				event.Props.SetText(ical.PropPriority, "1")	
 			default:
 				err = errors.New("Wrong priority, expecting 0-3")	
 				return
 		}
+		//TODO repeat - RRULE:FREQ=DAILY;INTERVAL=1
+		if info.alarmOffset != "" {
+		
+			// alarmComponent :=  ical.Component{Name:ical.CompAlarm}
+			alarmComponent :=  ical.NewComponent(ical.CompAlarm)
+			
+
+			alarmComponent.Props.SetText(ical.PropAction,"DISPLAY")
+			// alarmComponent.Props.Add(&ical.Prop{Name:ical.PropAction,Value:"DISPLAY",})
+			alarmComponent.Props.Add(&ical.Prop{Name:ical.PropDescription,Value:"Default Alarm Tempus description",})
+			alarmComponent.Props.SetText(ical.PropDescription,"Default Alarm Tempus description")
+			// ACTION:DISPLAY
+			// DESCRIPTION:Default Tasks.org description
+			var value string 
+			if info.alarmOffset == "0" {
+				// TRIGGER;RELATED=END:PT0S
+				value = "PT0S"
+				
+			}
+			
+			if strings.HasSuffix(info.alarmOffset,"h") {
+				offset,_ := strings.CutSuffix(info.alarmOffset,"h")
+				value="-PT" + offset + "H"
+				// TRIGGER;RELATED=END:-PT1H
+				
+			}
+			//TODO stop next if
+			if strings.HasSuffix(info.alarmOffset,"m") {
+				offset,_ := strings.CutSuffix(info.alarmOffset,"m")
+				value="-PT" + offset + "M"
+				// TRIGGER;RELATED=END:-PT10M
+			}
+			
+			if strings.HasSuffix(info.alarmOffset,"d") {
+				offset,_ := strings.CutSuffix(info.alarmOffset,"d")
+				value="-P" + offset + "D"
+				// TRIGGER;RELATED=END:-P1D
+			}
+			alarmComponent.Props.SetText("TRIGGER;RELATED=END",value)
+			event.Children = append(event.Children,alarmComponent) 
+		}
+		
 		
 		event.Props.SetDateTime(ical.PropDateTimeStamp, time.Now().UTC())
 		event.Props.SetDateTime(ical.PropCreated, time.Now().UTC()) //TODO if it don't exist already (in case if we edit todo)
 		event.Props.SetDateTime(ical.PropLastModified, time.Now().UTC())
+		//TODO add a function to verify event (exist in ical lib)
 	return
 }
 
@@ -417,54 +467,102 @@ func CreateTodo(name,description string, priority int, dueTime time.Time) (event
 
 func (m model) UploadTodo(event ical.Event) (err error) {
 		// event.Props.SetDateTime(ical.PropDateTimeStart, startDateTime)
-		//TODO PropPriority        = "PRIORITY"
+	
 	// TODO Alarm component properties
 		// PropAction  = "ACTION"
 		// PropRepeat  = "REPEAT"
 		// PropTrigger = "TRIGGER"}
 
-	calendar, err := client.GetCalendarObject(ctx, m.Creds.CalendarPath)
-		if err != nil {return}
-		calendar.Data.Component.Children = append(calendar.Data.Component.Children, event.Component)
-		var buf strings.Builder
-		encoder := ical.NewEncoder(&buf)
-		err = encoder.Encode(calendar.Data)
-		if err != nil {return}
-		_, err = client.PutCalendarObject(ctx, m.Creds.CalendarPath, calendar.Data)
-		if err != nil {return}
-		return nil
+	// calendar, err := client.GetCalendarObject(ctx, m.Creds.CalendarPath) //makes error on nextcloud
+	// if err != nil {return err}
+	
+	calendar := ical.NewCalendar()
+	calendar.Props.SetText(ical.PropProductID, "+//Casual//Tempus//EN")
+	calendar.Props.SetText(ical.PropVersion, "2.0")
+	calendar.Component.Children = append(calendar.Component.Children, event.Component)
+
+	todoGUID,err := event.Props.Get(ical.PropUID).Text()
+	if err != nil {return err}
+	//TODO check GUID uniq and regenerate if needed 
+	
+	var buf strings.Builder
+	encoder := ical.NewEncoder(&buf)
+	err = encoder.Encode(calendar)
+	if err != nil {return err}
+	_, err = client.PutCalendarObject(ctx, m.Creds.CalendarPath+todoGUID+".isc", calendar)
+	if err != nil {return err}
+	return nil
 
 }
 
 
-func (m model) DelTodo(todo ical.Event) (err error) {
+func (m model) DelTodo(delUID string) (err error) {
+// func (m model) DelTodo(todo ical.Event) (err error) {
 
-	delUID,err := todo.Props.Get(ical.PropUID).Text()
-	if err != nil {return}	
+	// delUID,err := todo.Props.Get(ical.PropUID).Text()
+	// if err != nil {return}	
 
-	calendar, err := client.GetCalendarObject(ctx, m.Creds.CalendarPath)
-	if err != nil {return}
-	
-	var newEvents []*ical.Component
-	for _, component := range calendar.Data.Component.Children {
-		if component.Name == ical.CompEvent {
-			var uid string
-			uid, err = component.Props.Text(ical.PropUID)
-			if err != nil {return}
-			if uid != delUID {
-				newEvents = append(newEvents, component)
-			}
-		}	
-	}
-	
-	calendar.Data.Component.Children = newEvents
-	var buf strings.Builder
-	encoder := ical.NewEncoder(&buf)
-	err = encoder.Encode(calendar.Data)
-	if err != nil {return}
-	
-	_, err = client.PutCalendarObject(ctx, m.Creds.CalendarPath, calendar.Data)
-	if err != nil {return}
+	// calendar, err := client.GetCalendarObject(ctx, m.Creds.CalendarPath+delUID+".isc")
+	// if err != nil {return}
+	// 
+	// var newEvents []*ical.Component
+	// for _, component := range calendar.Data.Component.Children {
+	// 	if component.Name == ical.CompEvent {
+	// 		var uid string
+	// 		uid, err = component.Props.Text(ical.PropUID)
+	// 		if err != nil {return}
+	// 		if uid != delUID {
+	// 			newEvents = append(newEvents, component)
+	// 		}
+	// 	}	
+	// }
+	// 
+	// calendar.Data.Component.Children = newEvents
+	// var buf strings.Builder
+	// encoder := ical.NewEncoder(&buf)
+	// err = encoder.Encode(calendar.Data)
+	// if err != nil {return}
+	// 
+	// _, err = client.PutCalendarObject(ctx, m.Creds.CalendarPath, calendar.Data)
+	// if err != nil {return}
+
+	// req := http.Request{
+	// 	Method: "DELETE",
+	// 	URL: url.Parse(m.Creds.URL + m.Creds.CalendarPath + delUID + ".isc"),
+	// 	
+	// }
+	    client := &http.Client{}
+
+	parts := strings.Split(m.Creds.URL, "/")
+	baseURL := parts[0]+"//"+parts[2]
+    // Create request
+    req, err := http.NewRequest("DELETE", baseURL + m.Creds.CalendarPath + delUID + ".isc", nil)
+    if err != nil {
+        // fmt.Println(err)
+        return
+    }
+    req.SetBasicAuth(m.Creds.Username, m.Creds.Password)
+
+    // Fetch Request
+    resp, err := client.Do(req)
+    if err != nil {
+        // fmt.Println(err)
+        return
+    }
+    defer resp.Body.Close()
+
+    // Read Response Body
+    // respBody, err := ioutil.ReadAll(resp.Body)
+    // if err != nil {
+    //     // fmt.Println(err)
+    //     return
+    // }
+
+	if resp.Status != "204 No Content" {return errors.New("Can't delete, response status: "+resp.Status+".")}
+    // Display Results
+    // fmt.Println("response Status : ", resp.Status)
+    // fmt.Println("response Headers : ", resp.Header)
+    // fmt.Println("response Body : ", string(respBody))
 
 	return nil
 }
@@ -472,8 +570,10 @@ func (m model) DelTodo(todo ical.Event) (err error) {
 
 func (m model) EditTodo(todo ical.Event) (err error) {
 	//TODO is there proper edit function ???
+	uid,err := todo.Props.Get(ical.PropUID).Text() 
+	if err != nil {return}
 	
-	err = m.DelTodo(todo)
+	err = m.DelTodo(uid)
 	if err != nil {return}
 
 	err = m.UploadTodo(todo)

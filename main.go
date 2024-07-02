@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"net/http"
+	"crypto/tls"
 	// "sync"
 	// "time"
 
@@ -26,6 +28,7 @@ func errHandler(err error, message string) {
 }
 
 func main() {
+    http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	options, err := ParseOptions()
 	errHandler(err, "Error parsing options")
 	m := InitModel()
@@ -60,6 +63,11 @@ func main() {
 				}
 				os.Exit(1)
 			}
+
+
+			m.LoginToCalendar()
+			m.GatherTodos()
+
 
 // 			calendarObjects, err := GetTODOs(calPath)
 // 			errHandler(err, "Error getting TODOs")
@@ -142,7 +150,10 @@ func main() {
 
 
 	//DEBUG stuff
-	
+	// task, err := CreateTodo("testName","description",3,time.Now())
+	// errHandler(err,"test fail")
+	// err = m.UploadTodo(task)
+	// errHandler(err,"test fail2")
 	//DEBUG stuff
 
 	
