@@ -10,6 +10,7 @@ require (
 	github.com/emersion/go-webdav v0.5.0
 	github.com/google/uuid v1.3.1
 	github.com/projectdiscovery/goflags v0.1.56
+	github.com/teambition/rrule-go v1.8.2
 	github.com/zalando/go-keyring v0.2.5
 	golang.org/x/term v0.18.0
 )
@@ -47,7 +48,6 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sahilm/fuzzy v0.1.1-0.20230530133925-c48e322e2a8f // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
-	github.com/teambition/rrule-go v1.8.2 // indirect
 	github.com/tidwall/gjson v1.14.3 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect

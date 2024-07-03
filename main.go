@@ -16,12 +16,15 @@ import (
 	
 
 	// "strconv"
+	// "github.com/charmbracelet/bubbles/list"
 )
 
 // var waitGroup sync.WaitGroup
 
 func errHandler(err error, message string) {
 	if err != nil {
+		//TODO double err!=nil
+		//TODO copy error to clipboard
 		fmt.Printf("\n\n%s: %s\n", message, err)
 		os.Exit(1)
 	}
@@ -45,9 +48,14 @@ func main() {
 		errHandler(err, "Unexpected error (we couldn't initiate WebDAV/CalDAV client)")
 		calendars, err = GetCalendars()
 		errHandler(err, "Error getting calendars (incorrect url/login/password)")
-
+	
+//TODO crushs START
 		var found bool
 		// var calPath string
+		if options.Calendar == "" {
+			m.LoginToCalendar()
+			// m.ActiveWindow = "login"
+		}
 		if options.Calendar != "" {
 			for _,calendar := range calendars { 
 				if calendar.Name == options.Calendar {
@@ -63,61 +71,16 @@ func main() {
 				}
 				os.Exit(1)
 			}
+	
 
 
+			// fmt.Println(m)
 			m.LoginToCalendar()
-			m.GatherTodos()
+			m.CalendarToTodo()
 
 
-// 			calendarObjects, err := GetTODOs(calPath)
-// 			errHandler(err, "Error getting TODOs")
-// 
-// 			today := time.Now() //TODO move to tui and remove it
-// 			todayTodos, err := ParseDueDateTODOs(calendarObjects, today)
-// 			tomorrow := time.Now().AddDate(0, 0, 1)
-// 			tomorrowTodos, err := ParseDueDateTODOs(calendarObjects, tomorrow)
-// //TODO remove it
-// 			fmt.Println("In total we have", len(calendarObjects), "todos")
-// //TODO remove it
-// 			var itemsToday []list.Item
-// 			var itemsTomorrow []list.Item
-// 			for _, todo := range todayTodos {
-// 				itemsToday = append(itemsToday, todo)
-// 			}
-// 			for _, todo := range tomorrowTodos {
-// 				itemsTomorrow = append(itemsTomorrow, todo)
-// 			}
-//TODO remove it
-			m.GatherTodos()
-
-			
-			// m.TodayTab = list.New(itemsToday, list.NewDefaultDelegate(), 0, 0)
-			// m.TodayTab.Title = "Today"
-			// m.TomorrowTab = list.New(itemsTomorrow, list.NewDefaultDelegate(), 0, 0)
-			// m.TomorrowTab.Title = "Tomorrow"
-
-			m.LoggedIn = true
-			m.ActiveWindow = "today"
-			
-		} else {
-			//TODO go to calendars page
-			// m.LoggedIn = true
-			m.ActiveWindow = "calendarChoose"
-
-			// items := []list.Item{
-			// 		item("Ramen"),
-			// 		item("Tomato Soup"),
-			// 		item("Hamburgers"),
-			// 		item("Cheeseburgers"),
-			// 		item("Currywurst"),
-			// 		item("Okonomiyaki"),
-			// 		item("Pasta"),
-			// 		item("Fillet Mignon"),
-			// 		item("Caviar"),
-			// 		item("Just Wine"),
-			// 	}
+//TODO crushs End
 		}
-		
 	} else {
 	//TODO I'm on a highway to (IfElse) hell!
 	//TODO probably need to do more careful debug
@@ -156,8 +119,8 @@ func main() {
 	// errHandler(err,"test fail2")
 	//DEBUG stuff
 
-	
-	p := tea.NewProgram(m, tea.WithAltScreen())
+	//TODO if task have alarm - make a notification / play sound...
+	p := tea.NewProgram(m, tea.WithAltScreen()) //TODO DEBUG bring me back
 	if _, err := p.Run(); err != nil {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)

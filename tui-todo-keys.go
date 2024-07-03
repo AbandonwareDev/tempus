@@ -2,7 +2,7 @@ package main
 
 import (
 	
-	// "github.com/emersion/go-ical"
+	"github.com/emersion/go-ical"
 	// "time"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/key"
@@ -31,11 +31,13 @@ func (m model) newItemDelegate(keys *delegateKeyMap) list.DefaultDelegate {
 
 	d.UpdateFunc = func(msg tea.Msg, ml *list.Model) tea.Cmd {
 		var title string
-		var todoUID string
+		// var todoUID string
+		var todoIcal ical.Event
 
 		if i, ok := ml.SelectedItem().(TODO); ok {
 			title = i.Title()
-			todoUID = i.UID()
+			// todoUID = i.UID()
+			todoIcal = ical.Event(i)
 		} else {
 			return nil
 		}
@@ -44,10 +46,17 @@ func (m model) newItemDelegate(keys *delegateKeyMap) list.DefaultDelegate {
 		case tea.KeyMsg:
 			switch {
 			case key.Matches(msg, keys.choose):
+				err := m.CompleteTodo(todoIcal)
+				if err != nil {return errHandler_tui(err,"can't complete item")}
+				index := ml.Index()
+				ml.RemoveItem(index)
+				if len(ml.Items()) == 0 {
+					keys.choose.SetEnabled(false)
+				}
 				return ml.NewStatusMessage(statusMessageStyle("You chose " + title))
 
 			case key.Matches(msg, keys.remove):
-				err := m.DelTodo(todoUID)
+				err := m.DelTodo(todoIcal)
 				if err != nil {return errHandler_tui(err,"can't delete item")}
 				index := ml.Index()
 				ml.RemoveItem(index)

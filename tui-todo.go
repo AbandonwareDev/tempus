@@ -41,9 +41,10 @@ func (i TODO) FilterValue() string {
 
 func (m *model) GatherTodos() (err error) {
 //TODO more modular approach
-	calendarObjects, err := GetTODOs(m.Creds.CalendarPath)
+	m.CalObjects, err = GetTODOs(m.Creds.CalendarPath)
 	if err != nil {return}
 
+	calendarObjects := m.CalObjects //TODO rm me
 	// var todayTodos []TODO
 	
 	today := time.Now() 

@@ -68,7 +68,7 @@ func (options *Options) SanityCheck() error {
 		}
 	}
 
-	if options.Proxy != "" {os.Setenv("HTTP_PROXY", options.Proxy)}
+	if options.Proxy != "" {os.Setenv("HTTPS_PROXY", options.Proxy)}
 	
 
 	return nil

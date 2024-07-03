@@ -6,6 +6,7 @@ import (
 	webdav "github.com/emersion/go-webdav"
 	"github.com/emersion/go-webdav/caldav"
 	"github.com/emersion/go-ical"
+	"github.com/teambition/rrule-go"
 
 	"strings"
 	"github.com/google/uuid"
@@ -496,10 +497,10 @@ func (m model) UploadTodo(event ical.Event) (err error) {
 }
 
 
-func (m model) DelTodo(delUID string) (err error) {
-// func (m model) DelTodo(todo ical.Event) (err error) {
+// func (m model) DelTodo(delUID string) (err error) {
+func (m model) DelTodo(todo ical.Event) (err error) {
 
-	// delUID,err := todo.Props.Get(ical.PropUID).Text()
+	delUID,err := todo.Props.Get(ical.PropUID).Text()
 	// if err != nil {return}	
 
 	// calendar, err := client.GetCalendarObject(ctx, m.Creds.CalendarPath+delUID+".isc")
@@ -531,24 +532,20 @@ func (m model) DelTodo(delUID string) (err error) {
 	// 	URL: url.Parse(m.Creds.URL + m.Creds.CalendarPath + delUID + ".isc"),
 	// 	
 	// }
-	    client := &http.Client{}
+	
+	client := &http.Client{}
 
 	parts := strings.Split(m.Creds.URL, "/")
 	baseURL := parts[0]+"//"+parts[2]
     // Create request
     req, err := http.NewRequest("DELETE", baseURL + m.Creds.CalendarPath + delUID + ".isc", nil)
-    if err != nil {
-        // fmt.Println(err)
-        return
-    }
+    if err != nil {return}
     req.SetBasicAuth(m.Creds.Username, m.Creds.Password)
 
     // Fetch Request
     resp, err := client.Do(req)
-    if err != nil {
-        // fmt.Println(err)
-        return
-    }
+    if err != nil {return}
+    // resp.Body.Close()
     defer resp.Body.Close()
 
     // Read Response Body
@@ -558,22 +555,66 @@ func (m model) DelTodo(delUID string) (err error) {
     //     return
     // }
 
-	if resp.Status != "204 No Content" {return errors.New("Can't delete, response status: "+resp.Status+".")}
+	if resp.Status == "204 No Content" {return nil}
+	if resp.Status == "404 Not Found" {
+		// Nextcloud Tasks create differend GUID for Vtodo and path
+		// TODO code fmt - Highway to for-if hell
+		
+		for _, calObj := range m.CalObjects {
+			for _, eventComponent:= range (*calObj.Data).Children {
+				event := ical.Event{Component: eventComponent}
+				if event.Name == "VTODO" {
+					// eventUID,_ := (*event).Props["UID"][0].Text()
+					
+					eventUID,err := event.Props.Get(ical.PropUID).Text()
+
+					if err != nil {eventUID = ""}
+					if (eventUID == delUID) {
+						//verify that it's indeed that event by comparing Name
+						sum1,err:=todo.Props.Get("SUMMARY").Text()
+						if err != nil {return err}
+						sum2,err:=event.Props.Get("SUMMARY").Text()
+						if err != nil {return err}
+						if sum1==sum2 {
+							req2, err := http.NewRequest("DELETE", baseURL + calObj.Path, nil)
+						    if err != nil {return err}
+						    req2.SetBasicAuth(m.Creds.Username, m.Creds.Password)
+						
+						    // Fetch Request
+						    resp2, err := client.Do(req2)
+						    if err != nil {return err}
+
+						    defer resp2.Body.Close()
+						    if resp2.Status == "204 No Content" {return nil} else {return errors.New("Can't delete, response status: "+resp2.Status+".")}
+						    
+						    //TODO exit for loop
+						    // return errors.New("test")
+					    }
+					}
+				}
+			}
+			
+		}	
+		
+		// return errors.New("test")
+ 	}
+ 	time.Sleep(2*time.Second) //TODO DEBUG RM ME
     // Display Results
     // fmt.Println("response Status : ", resp.Status)
     // fmt.Println("response Headers : ", resp.Header)
     // fmt.Println("response Body : ", string(respBody))
 
-	return nil
+	// return nil
+	return errors.New("Can't delete, response status: "+resp.Status+".")
 }
 
 
 func (m model) EditTodo(todo ical.Event) (err error) {
 	//TODO is there proper edit function ???
-	uid,err := todo.Props.Get(ical.PropUID).Text() 
-	if err != nil {return}
+	// uid,err := todo.Props.Get(ical.PropUID).Text() 
+	// if err != nil {return}
 	
-	err = m.DelTodo(uid)
+	err = m.DelTodo(todo)
 	if err != nil {return}
 
 	err = m.UploadTodo(todo)
@@ -589,7 +630,38 @@ func (m model) EditTodo(todo ical.Event) (err error) {
 func (m model) CompleteTodo(todo ical.Event) (err error) {
 
 	//TODO if it repitable - Repeate, otherwise complete it
-
+	
+	if todo.Props["RRULE"] != nil {
+		var rOptions *rrule.ROption
+		rOptions, err = todo.Props.RecurrenceRule()
+		if err != nil {return}
+		offset := rOptions.Interval
+		var currentDUE time.Time 
+		currentDUE,err = todo.Props.DateTime("DUE",nil)
+		if err != nil {return}
+		switch rOptions.Freq {
+			case rrule.DAILY:
+				currentDUE = currentDUE.AddDate(0,0,offset)
+			case rrule.WEEKLY:
+				currentDUE = currentDUE.AddDate(0,0,7*offset)
+			case rrule.MONTHLY:
+				currentDUE = currentDUE.AddDate(0,offset,0)
+			case rrule.YEARLY:
+				currentDUE = currentDUE.AddDate(offset,0,0)
+			case rrule.HOURLY:  //TODO didn't debug
+				currentDUE = currentDUE.Add(time.Hour * time.Duration(offset))
+			case rrule.MINUTELY: //TODO didn't debug
+				currentDUE = currentDUE.Add(time.Minute * time.Duration(offset))
+			case rrule.SECONDLY: //TODO didn't debug
+				currentDUE = currentDUE.Add(time.Second * time.Duration(offset))
+		}
+		todo.Props.SetDateTime("DUE",currentDUE)
+	} else {
+		todo.Props.SetText(ical.PropStatus,"COMPLETED")
+		todo.Props.SetText(ical.PropPercentComplete,"100")
+		todo.Props.SetDateTime(ical.PropCompleted,time.Now())
+	}
+	
 	err = m.EditTodo(todo)
 	if err != nil {return}
 	
