@@ -3,7 +3,7 @@ package main
 import (
 	// "fmt"
 	// "os"
-	"time"
+	// "time"
 	// "io"
 	// "strings"
 
@@ -20,13 +20,10 @@ import (
 
 	// "errors"
 )
-//TODO add new TODos
-//TODO edit TODOs
-//TODO add search
-//TODO add custom filter (search that saves with filter)
-// TODO add tabs for days/searcf/filter
-
-
+//TODO NEW FEATURE IMPORTANT - list today/tomorrow -  edit TODOs
+//TODO NEW FEATURE -  add search
+//TODO NEW FEATURE -  add custom filter (search that saves with filter)
+// TODO NEW FEATURE -  add tabs for days/searcf/filter?
 
 
 
@@ -34,8 +31,7 @@ import (
 type errMsg struct {message string}
 
 
-//TODO fix multiple errHandlers 
-//TODO rm me
+//TODO fix multiple errHandlers, rm m.errHandler, rename CLI errHandler (in main.go). rename errHandler_tui to errHandler. Rename ebery call 
 func (m model) errHandler(err error,desc string) (tea.Cmd) {
 	if err != nil {
 		output := desc+": "+err.Error()
@@ -71,32 +67,39 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch m.ActiveWindow {
+		case "tomorrow": //TODO rm me  debug
+			case "a":
+				m.ActiveWindow = "addTODO"
+				return m, nil
 		case "today": //TODO rm me  debug
 			switch keypress := msg.String(); keypress {
 				case "q", "ctrl+c":
 					// m.quitting = true
 					return m, tea.Quit
-		
-				case "y":
-					// m."2797322749061742597"
-				case "h":
-
-					todoInfo := TodoInterface{
-						name: "testName1",
-						description: "description",
-						priority: 3,
-						dueTime: time.Now(),
-						alarmOffset: "1h",
-					}
-					task, err := CreateTodo(todoInfo)
-					if err != nil {return m, m.errHandler(err,"test fail")}
-					err = m.UploadTodo(task)
-					if err != nil {return m, m.errHandler(err,"test fail2")}
-					m.UpdateTodos(task)
-					// fmt.Println(&task)
-					// fmt.Println(err)
-					// time.Sleep(2*time.Second)
+				case "a":
+					m.ActiveWindow = "addTODO"
 					return m, nil
+		
+				// case "y":
+					// m."2797322749061742597"
+// 				case "h":
+// 
+// 					todoInfo := TodoInterface{
+// 						name: "testName1",
+// 						description: "description",
+// 						priority: 3,
+// 						dueTime: time.Now(),
+// 						alarmOffset: "1h",
+// 					}
+// 					task, err := CreateTodo(todoInfo)
+// 					if err != nil {return m, m.errHandler(err,"test fail")}
+// 					err = m.UploadTodo(task)
+// 					if err != nil {return m, m.errHandler(err,"test fail2")}
+// 					m.UpdateTodos(task)
+// 					// fmt.Println(&task)
+// 					// fmt.Println(err)
+// 					// time.Sleep(2*time.Second)
+// 					return m, nil
 			}
 		case "calendarChoose":
 			switch keypress := msg.String(); keypress {
@@ -124,40 +127,107 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		
 			case "login":
 				switch keypress := msg.String(); keypress {
-				case "ctrl+c", "q":
-					return m, tea.Quit
+				// case "ctrl+c", "q"://are you stupid?
+				// 	return m, tea.Quit
 				case "enter":
 					if m.focused == len(m.loginInputs)-1 {
 						//TODO check that we have all fields not empty and notificate about it
-						//TODO submit
 						for i := range m.loginInputs {
 									m.loginInputs[i], cmd = m.loginInputs[i].Update(msg)
 								}
-						// fmt.Println(m.loginInputs[url].Value())//DEBUG
 						m.Creds.URL = m.loginInputs[url].Value()
 						m.Creds.Username = m.loginInputs[login].Value()
 						m.Creds.Password = m.loginInputs[pass].Value()
-						// fmt.Println(m.Creds.URL)//DEBUG
-							
-						// time.Sleep(1 * time.Second) ///DEBUG
-						// m.Creds.
-						// return m, nil
+
 						err := m.LoginToCalendar()
 						if err != nil {return m, m.errHandler(err,"Failed to authenticate")}
 						// try login -> choose calendar -> store -> move to getting stuff
 						return m, nil
 						// return m, tea.Quit
 					}
-					m.nextInput()
+					m.nextLoginInput()
 				case "shift+tab", "up":
-					m.prevInput()
+					// buttonStyle = lipgloss.NewStyle()
+					m.prevLoginInput()
 				case "tab", "down":
-					m.nextInput()
+					// buttonStyle = buttonStyle.Background(lipgloss.Color("#7D56F4"))
+					m.nextLoginInput()
 				}
 				for i := range m.loginInputs {
 					m.loginInputs[i].Blur()
 				}
 				m.loginInputs[m.focused].Focus()
+	
+		
+		
+			case "addTODO":
+				switch keypress := msg.String(); keypress {
+				// case "ctrl+c", "q": //are you stupid?
+				// 	return m, tea.Quit
+				case "enter":
+					if m.focused == len(m.todoAddInputs)-1 {
+						//TODO check that we have all fields not empty or contains wrong value and notify about it (add textinput validator in tui-model.go)
+						
+						for i := range m.todoAddInputs {
+									m.todoAddInputs[i], cmd = m.todoAddInputs[i].Update(msg)
+								}
+
+						err := m.AddTODOtoList()
+						if err != nil {return m, m.errHandler(err,"Failed to add TODO")}
+						return m, nil
+					}
+					m.nextTODOInput()
+					m.addTimeFocus = false
+					// return m, nil
+				case "shift+tab", "up":
+					// buttonStyle = lipgloss.NewStyle()
+					m.addTimeFocus = false
+					m.prevTODOInput()
+					// return m, nil
+				case "right":
+				//TODO BUG - cant move left-right, probably just move return in IF statement
+				//TODO BUG - focus todoAddInputsTime only if  cursor at last character
+					// if focus Due Time
+					if m.focused == 1 {
+						m.addTimeFocus = true
+						m.todoAddInputs[m.focused].Blur()	
+						if m.todoAddInputsTime[1].Focused() {
+							m.todoAddInputsTime[1].Blur()
+							m.todoAddInputsTime[0].Focus()	
+						} else {
+							m.todoAddInputsTime[0].Blur()
+							m.todoAddInputsTime[1].Focus()	
+						}						
+					}
+					return m, nil
+				case "left":
+				//TODO BUG - cant move left-right, probably just move return in IF statement
+				//TODO BUG - focus todoAddInputs only if cursor at zero character 
+					if m.focused == 1 {
+						m.todoAddInputs[m.focused].Blur()	
+						if m.todoAddInputsTime[0].Focused() {
+							m.todoAddInputsTime[0].Blur()
+							m.todoAddInputsTime[1].Focus()	
+						} else {
+							m.todoAddInputsTime[0].Blur()
+							m.todoAddInputsTime[1].Blur()	
+							m.todoAddInputs[m.focused].Focus()
+						}						
+					}
+					return m, nil
+				case "tab", "down":
+					// buttonStyle = buttonStyle.Background(lipgloss.Color("#7D56F4"))
+					m.nextTODOInput()
+					m.addTimeFocus = false
+					// return m, nil
+				}
+				// for i := range m.todoAddInputs {
+				// 	m.todoAddInputs[i].Blur()
+				// }
+				// for i := range m.todoAddInputsTime {
+				// 	m.todoAddInputsTime[i].Blur()
+				// }
+				// if !m.addTimeFocus {m.todoAddInputs[m.focused].Focus()}
 	
 		}
 
@@ -185,17 +255,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// 	TODO add new element
 		// 	return m, tea.Quit
 		// }
-		case "t":
-			// TODO add new element
-			return m, tea.Quit
+		// case "t":
+		// 	// TODO add new element
+		// 	return m, tea.Quit
 		}
 
 	case tea.WindowSizeMsg:
 		
 		switch m.ActiveWindow {
+		//TODO BUG - addTODO/login - output render breaks a bit if errorHandler appeared on screen
 		// case "login": //TODO
 		// 	m.TodayTab.SetSize(msg.Width-h, msg.Height-v)
 		// case "calendarChoose":  //TODO
+		// case "addTODO":  //TODO
 		// 	m.calendarList.SetWidth(msg.Width)
 		case "today":
 			h, v := docStyle.GetFrameSize()
@@ -218,6 +290,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		for i := range m.loginInputs {
 			m.loginInputs[i], cmd = m.loginInputs[i].Update(msg)
 		}
+	case "addTODO":
+		if (m.focused == 1) && (!m.todoAddInputs[m.focused].Focused()) {
+			for i := range m.todoAddInputsTime {
+				m.todoAddInputsTime[i], cmd = m.todoAddInputsTime[i].Update(msg)
+			}			
+		} else {
+			for i := range m.todoAddInputs {
+				m.todoAddInputs[i], cmd = m.todoAddInputs[i].Update(msg)
+			}
+		}
 	case "calendarChoose":
 			m.calendarList, cmd = m.calendarList.Update(msg)
 	case "today":
@@ -228,6 +310,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case "": //exit on key press
 		switch tmp := msg.(type) { //TODO debug and optimize
 			case tea.KeyMsg:
+			// TODO exit on key press
 			_ = tmp
 			if m.LoggedIn {
 				m.ActiveWindow = "today"
@@ -256,6 +339,18 @@ func (m model) View() string {
 			MarginLeft(width/2 - 20)
 			// MarginRight(width/3)
 		tabOutput = loginStyle.Render(m.RenderLogin())
+		// w, h := lipgloss.Size(tabOutput)
+	case "addTODO":
+		width, height, _ := term.GetSize(0)
+		width -= 2
+		height -= 2
+		loginStyle = loginStyle.
+			// Width(30).
+			// Height(height/5).
+			MarginTop(height / 5).
+			MarginLeft(width/2 - 20)
+			// MarginRight(width/3)
+		tabOutput = loginStyle.Render(m.RenderAddTodo())
 		// w, h := lipgloss.Size(tabOutput)
 	case "calendarChoose": 
 		width, height, _ := term.GetSize(0)

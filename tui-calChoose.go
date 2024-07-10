@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	// "github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"io"
 	"strings"
 	// "github.com/charmbracelet/lipgloss"
@@ -19,7 +19,6 @@ var ( //Calendars choose
 	helpStyle         = list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1)
 	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
 )
-
 
 func (m model) RenderCalendarChooser() string {
 	return m.calendarList.View()
@@ -52,13 +51,11 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	fmt.Fprint(w, fn(str))
 }
 
-
 func (m *model) CalendarToTodo() (err error) {
 
 	m.LoggedIn = true
 	m.GatherTodos()
 	m.ActiveWindow = "today"
-	
 
 	return nil
 }

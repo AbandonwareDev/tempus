@@ -1,21 +1,23 @@
 package main
 
 import (
-	"os"
 	"errors"
 	"github.com/projectdiscovery/goflags"
+	"os"
 	"sync"
 )
 
 var onceOptions sync.Once
 var options = &Options{}
 
+//TODO NEW FEATURE - batch/simple add tasks via CLI 
+
 type Options struct {
 	URL string
 	// Threads int
 	// Verbose   bool
-	SkipSave   bool
-	Calendar     string
+	SkipSave bool
+	Calendar string
 
 	User     string
 	Password string
@@ -68,8 +70,9 @@ func (options *Options) SanityCheck() error {
 		}
 	}
 
-	if options.Proxy != "" {os.Setenv("HTTPS_PROXY", options.Proxy)}
-	
+	if options.Proxy != "" {
+		os.Setenv("HTTPS_PROXY", options.Proxy)
+	}
 
 	return nil
 }

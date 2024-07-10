@@ -43,7 +43,7 @@ const (
 //     log.Println(decoded)
 // }
 
-//TODO we can make custom type e.g. SaveData - with []string and put everything saved there. OR we can make the thing like in inputs[variable] - to make it convinient 
+//TODO we can make custom type e.g. SaveData - with []string and put everything saved there. OR we can make the thing like in inputs[variable] - to make it convinient
 
 //TODO inconsistend global funcs (or is it called 'exported funcs?')
 
@@ -95,18 +95,19 @@ func getCredentialsFromKeyring_wrapper() (url, login, password, calendar string,
 	return
 }
 
-
-func getCredentialsFromKeyring() (Credentials,error) {
+func getCredentialsFromKeyring() (Credentials, error) {
 	//TODO inconsistent approach compared to caldav.go
-	url,username,password,calendar,err := getCredentialsFromKeyring_wrapper()
-	if err != nil {return Credentials{},err}
+	url, username, password, calendar, err := getCredentialsFromKeyring_wrapper()
+	if err != nil {
+		return Credentials{}, err
+	}
 	return Credentials{
-		URL:url,
-		Username:username,
-		Password:password,
-		CalendarPath:calendar,
+		URL:          url,
+		Username:     username,
+		Password:     password,
+		CalendarPath: calendar,
 	}, nil
-	
+
 }
 
 // func debugKeyring() {

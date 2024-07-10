@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"net/http"
 	"crypto/tls"
+	"fmt"
+	"net/http"
+	"os"
 	// "sync"
 	// "time"
 
@@ -13,11 +13,15 @@ import (
 
 	"github.com/emersion/go-webdav/caldav"
 	// "slices"
-	
-
 	// "strconv"
 	// "github.com/charmbracelet/bubbles/list"
 )
+
+//TODO autoupdate?
+//TODO predefined filters (missed tasks, upcoming important tasks, tasks without tag, tasks without priority)
+//TODO custom filters
+//TODO alarms
+//TODO search in all tasks
 
 // var waitGroup sync.WaitGroup
 
@@ -31,7 +35,7 @@ func errHandler(err error, message string) {
 }
 
 func main() {
-    http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	options, err := ParseOptions()
 	errHandler(err, "Error parsing options")
 	m := InitModel()
@@ -48,8 +52,8 @@ func main() {
 		errHandler(err, "Unexpected error (we couldn't initiate WebDAV/CalDAV client)")
 		calendars, err = GetCalendars()
 		errHandler(err, "Error getting calendars (incorrect url/login/password)")
-	
-//TODO crushs START
+
+		//TODO BUG crush START
 		var found bool
 		// var calPath string
 		if options.Calendar == "" {
@@ -57,33 +61,30 @@ func main() {
 			// m.ActiveWindow = "login"
 		}
 		if options.Calendar != "" {
-			for _,calendar := range calendars { 
+			for _, calendar := range calendars {
 				if calendar.Name == options.Calendar {
 					found = true
 					// calPath = calendar.Path
 					m.Creds.CalendarPath = calendar.Path
 				}
 			}
-			if ! found {
+			if !found {
 				fmt.Println("we don't have calendar ", options.Calendar, ". We have:")
-				for _,calendar := range calendars { 
+				for _, calendar := range calendars {
 					fmt.Println(calendar.Name)
 				}
 				os.Exit(1)
 			}
-	
-
 
 			// fmt.Println(m)
 			m.LoginToCalendar()
 			m.CalendarToTodo()
 
-
-//TODO crushs End
+			//TODO BUG crush End
 		}
 	} else {
-	//TODO I'm on a highway to (IfElse) hell!
-	//TODO probably need to do more careful debug
+		//TODO I'm on a highway to (IfElse) hell!
+		//TODO probably need to do more careful debug
 		creds, err := getCredentialsFromKeyring()
 		m.Creds = creds
 		if err != nil {
@@ -106,17 +107,17 @@ func main() {
 					m.ActiveWindow = "today"
 				}
 			}
-			
-		}
-		
-	}
 
+		}
+
+	}
 
 	//DEBUG stuff
 	// task, err := CreateTodo("testName","description",3,time.Now())
 	// errHandler(err,"test fail")
 	// err = m.UploadTodo(task)
 	// errHandler(err,"test fail2")
+		// m.ActiveWindow = "addTODO"
 	//DEBUG stuff
 
 	//TODO if task have alarm - make a notification / play sound...
@@ -127,6 +128,5 @@ func main() {
 	}
 
 	// fmt.Println(m.)
-
 
 }

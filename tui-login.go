@@ -8,17 +8,18 @@ import (
 
 var docStyle = lipgloss.NewStyle().Margin(1, 2)
 
-
 var loginStyle = lipgloss.NewStyle().Width(40).Align(lipgloss.Center).BorderStyle(lipgloss.NormalBorder())
 
 var inputStyle = lipgloss.NewStyle()
+// var buttonStyle = lipgloss.NewStyle().Background(lipgloss.Color("#7D56F4"))
+var buttonStyle = lipgloss.NewStyle()
 
 const (
 	url = iota
 	login
 	pass
+	// btnFocus
 )
-
 
 func (m model) RenderLogin() string {
 
@@ -46,55 +47,104 @@ func (m model) RenderLogin() string {
 		m.loginInputs[login].View(),
 		inputStyle.Width(30).Foreground(lipgloss.AdaptiveColor{Dark: "50"}).Render("Password"),
 		m.loginInputs[pass].View(), //TODO hide
-		inputStyle.Render("Continue ->"),
+		buttonStyle.Render("Continue ->"),
 	)
 	// .Align(lipgloss.Center).BorderStyle(lipgloss.NormalBorder())
 
 }
 
-func (m *model) nextInput() {
-	m.focused = (m.focused + 1) % len(m.loginInputs)
+func (m *model) nextLoginInput() {
+
+	if m.focused == len(m.loginInputs)-1 {
+		
+		if m.btnFocus == true {
+			m.btnFocus = false
+			buttonStyle = lipgloss.NewStyle()
+			m.focused = (m.focused + 1) % len(m.loginInputs)
+			//TODO do smth with blinking cursor?
+		} else {
+			buttonStyle = buttonStyle.Background(lipgloss.Color("#7D56F4"))
+			m.btnFocus = true
+		}
+	} else {
+		// buttonStyle = lipgloss.NewStyle()
+		m.focused = (m.focused + 1) % len(m.loginInputs)
+		
+	}
+
+	// m.focused = (m.focused + 1) % len(m.loginInputs)
+
+	
+
+	//btnFocus
+	// if m.focused == len(m.loginInputs) {
+	// 	buttonStyle = buttonStyle.Background(lipgloss.Color("#7D56F4"))
+	// } else {
+	// 	buttonStyle = lipgloss.NewStyle()
+	// }
+	
 }
 
 // prevInput focuses the previous input field
-func (m *model) prevInput() {
-	m.focused--
-	// Wrap around
-	if m.focused < 0 {
-		m.focused = len(m.loginInputs) - 1
-	}
-}
+func (m *model) prevLoginInput() {
 
+	if m.focused == len(m.loginInputs)-1 {
+		if m.btnFocus == true {
+			m.btnFocus = false
+			buttonStyle = lipgloss.NewStyle()
+			//TODO do smth with blinking cursor?
+			// m.focused = (m.focused + 1) % len(m.loginInputs)
+		} else {
+			m.focused--
+			// Wrap around
+			if m.focused < 0 {
+				m.focused = len(m.loginInputs) - 1
+			}
+		}
+	} else {
+		m.focused--
+		// Wrap around
+		if m.focused < 0 {
+			m.focused = len(m.loginInputs) - 1
+		}
+	}
+
+}
 
 func (m *model) LoginToCalendar() (err error) {
 	err = m.InitDAVclients()
-	if err != nil { return }
-	
+	if err != nil {
+		return
+	}
+
 	m.Calendars, err = GetCalendars()
-	if err != nil { return }
+	if err != nil {
+		return
+	}
 
 	items := []list.Item{}
 
-	for _,calendar := range m.Calendars { 
+	for _, calendar := range m.Calendars {
 		// fmt.Println(calendar.Name)
-		items = append(items,item(calendar.Name))
+		items = append(items, item(calendar.Name))
 	}
 
 	// m.LoggedIn = true TODO after calendar choose
 
-	const defaultWidth = 20	
+	const defaultWidth = 20
 	const listHeight = 24
-		l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
-		l.Title = "Which To-Do list do we need?"
-		l.SetShowStatusBar(false)
-		l.SetFilteringEnabled(false)
-		l.Styles.Title = titleStyle
-		l.Styles.PaginationStyle = paginationStyle
-		l.Styles.HelpStyle = helpStyle
+	l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
+	l.Title = "Which To-Do list do we need?"
+	l.SetShowStatusBar(false)
+	l.SetFilteringEnabled(false)
+	l.Styles.Title = titleStyle
+	l.Styles.PaginationStyle = paginationStyle
+	l.Styles.HelpStyle = helpStyle
 
 	m.calendarList = l
 	m.ActiveWindow = "calendarChoose"
 
+	m.btnFocus = false
 	
 	return nil
 }
