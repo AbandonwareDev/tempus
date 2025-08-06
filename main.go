@@ -17,11 +17,14 @@ import (
 	// "github.com/charmbracelet/bubbles/list"
 )
 
-//TODO autoupdate?
-//TODO predefined filters (missed tasks, upcoming important tasks, tasks without tag, tasks without priority)
-//TODO custom filters
-//TODO alarms
+//TODO filters
+	//TODO predefined filters (missed tasks, upcoming important tasks, tasks without tag, tasks without priority)
+	//TODO custom filters
 //TODO search in all tasks
+//TODO alarms
+//TODO refresh current tasks
+	//TODO autoupdate?
+	
 
 // var waitGroup sync.WaitGroup
 
