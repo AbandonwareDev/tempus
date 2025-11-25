@@ -2,6 +2,8 @@
 
 My TUI to-do manager for WebDAV
 
+![](./.media/new.gif)
+
 ### Info
 
 Uses TODO instead of calendar events from WebDAV (e.g. Nextcloud). Code can be reporpused to sync/consume .isc files.
