@@ -8,9 +8,9 @@ My TUI to-do manager for WebDAV
 
 Uses TODO instead of calendar events from WebDAV (e.g. Nextcloud). Code can be reporpused to sync/consume .isc files.
 
-Secrets stored in desktop keyring (should be compatable with MacOS)
+Password is stored in desktop secret-services (should be compatable with MacOS keyring)
 
-Currentyl shows today tasks
+Currently shows today tasks
 
 # Intallation
 
