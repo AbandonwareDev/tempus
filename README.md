@@ -10,7 +10,11 @@ Uses TODO instead of calendar events from WebDAV (e.g. Nextcloud). Code can be r
 
 Secrets stored in desktop keyring (should be compatable with MacOS)
 
-Shows today tasks
+Currentyl shows today tasks
+
+# Intallation
+
+`go install github.com/AbandonwareDev/tempus@latest`
 
 ## TODOs
 

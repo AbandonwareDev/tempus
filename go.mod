@@ -1,4 +1,4 @@
-module git.sual.in/casual/tempus
+module github.com/AbandonwareDev/tempus
 
 go 1.22.3
 
